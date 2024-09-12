@@ -8,7 +8,11 @@ import mysqlConfig from '../config/mysql.config';
     ConfigModule.forFeature(mysqlConfig),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => configService.get('mysql'),
+      useFactory: async (configService: ConfigService) => ({
+        ...configService.get('mysql'),
+        logging: 'all',
+        maxQueryExecutionTime: 1000,
+      }),
       inject: [ConfigService],
     }),
   ],

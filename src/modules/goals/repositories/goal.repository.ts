@@ -1,5 +1,5 @@
 import { EntityRepository, Repository } from 'typeorm';
-import { User } from '../entities/user.mysql-entity';
+import { User } from '../../../core/users/entities/user.mysql-entity'
 
 @EntityRepository(User)
 export class GoalRepository extends Repository<User> {}
