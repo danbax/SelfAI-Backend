@@ -1,6 +1,5 @@
 -- Drop tables if they exist
 DROP TABLE IF EXISTS `message`;
-DROP TABLE IF EXISTS `chat`;
 DROP TABLE IF EXISTS `users`;
 
 -- Create the users table
@@ -54,3 +53,13 @@ INSERT INTO `message` (`chat_id`, `role`, `message`) VALUES
 (3, 'user', 'I want to explore my core values.'),
 (4, 'user', 'I want to understand myself better.'),
 (4, 'system', 'Let’s start with some self-analysis.');
+
+
+-- Create the sessions table
+CREATE TABLE `sessions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `category` VARCHAR(100) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `text` TEXT NOT NULL,
+  `system_prompt` TEXT NOT NULL
+);

@@ -4,6 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import mysqlConfig from '../config/mysql.config';
 
 import { User } from '../core/users/entities/user.mysql-entity'
+import { Chat} from '../core/chat/entities/chat.entity'
+import { Message } from '../core/chat/entities/message.entity'
+import { Session } from '../core/chat/entities/session.entity'
 
 @Module({
   imports: [
@@ -13,8 +16,8 @@ import { User } from '../core/users/entities/user.mysql-entity'
       useFactory: async (configService: ConfigService) => ({
         ...configService.get('mysql'),
         logging: 'all',
-        maxQueryExecutionTime: 1000,
-        entities: [User],
+        maxQueryExecutionTime: 5000,
+        entities: [User, Chat, Message, Session]
       }),
       inject: [ConfigService],
     }),
