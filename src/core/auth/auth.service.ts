@@ -1,13 +1,12 @@
-
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
-import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.mysql-entity';
-
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserCreatedEvent } from '../../events/consumers/auth/user-created.event';
 
 @Injectable()
 export class AuthService {
@@ -16,22 +15,25 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async validateUser(loginDto: LoginDto): Promise<User | null> {
     const user = await this.usersService.findByEmail(loginDto.email);
-    if (user && await bcrypt.compare(loginDto.password, user.password)) {
-      return user;
-
+    if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
+      return null;
     }
-    return null;
+    return user;
   }
 
-  async login(user: User): Promise<{ access_token: string }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+    const user = await this.validateUser(loginDto);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const payload = { email: user.email, sub: user.id };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    return { access_token: this.jwtService.sign(payload) };
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -39,13 +41,20 @@ export class AuthService {
     return bcrypt.hash(password, salt);
   }
 
-  async register(registerDto: RegisterDto): Promise<string> {
+  async register(registerDto: RegisterDto): Promise<{ access_token: string }> {
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
+
     const hashedPassword = await this.hashPassword(registerDto.password);
     registerDto.password = hashedPassword;
-    const user  = await this.usersService.create(registerDto);
+
+    const user = await this.usersService.create(registerDto);
+
+    this.eventEmitter.emit('user.created', new UserCreatedEvent(user.id));
 
     const payload = { email: user.email, sub: user.id };
-    return this.jwtService.sign(payload);
+    return { access_token: this.jwtService.sign(payload) };
   }
-
 }

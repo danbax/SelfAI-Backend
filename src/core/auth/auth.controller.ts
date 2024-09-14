@@ -14,7 +14,6 @@ export class AuthController {
       throw new Error("Invalid credentials");
     }
 
-
     return this.authService.login(loginDto);
   }
 
