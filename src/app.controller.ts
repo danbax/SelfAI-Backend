@@ -10,4 +10,10 @@ export class AppController {
   async getHello(@I18n() i18n: I18nContext) {
     return i18n.t('hello');
   }
+
+  //general route
+  @Get('general')
+  async getGeneral(@I18n() i18n: I18nContext) {
+    return i18n.t('hello');
+  }
 }

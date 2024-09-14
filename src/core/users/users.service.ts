@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.mysql-entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserRepository } from './repositories/user.repository';
-import { I18nContext } from 'nestjs-i18n';
+
 
 @Injectable()
 export class UsersService {
@@ -12,12 +11,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
-
-  create(createUserDto: CreateUserDto) {
-    const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
-  }
-
+  
   findAll() {
     return this.userRepository.find();
   }
@@ -37,4 +31,17 @@ export class UsersService {
   remove(id: number) {
     return this.userRepository.delete(id);
   }
+
+  async create(createUserDto: CreateUserDto) {
+    const user = this.userRepository.create(createUserDto);
+    try {
+      const savedUser = await this.userRepository.save(user);
+      const { password, ...userWithoutPassword } = savedUser;
+      return userWithoutPassword; 
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+  
 }
