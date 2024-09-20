@@ -8,7 +8,6 @@ export class TokenValidationGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const token = request.headers['x-api-key'];
-    console.log('token', token)
     
     if (!token) {
       throw new UnauthorizedException('Token is missing');

@@ -55,11 +55,45 @@ INSERT INTO `message` (`chat_id`, `role`, `message`) VALUES
 (4, 'system', 'Let’s start with some self-analysis.');
 
 
--- Create the sessions table
-CREATE TABLE `sessions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `category` VARCHAR(100) NOT NULL,
-  `title` VARCHAR(255) NOT NULL,
-  `text` TEXT NOT NULL,
-  `system_prompt` TEXT NOT NULL
+CREATE TABLE sessions (
+  id INT PRIMARY KEY,
+  category_id INT,
+  system_prompt TEXT
 );
+CREATE TABLE session_translations (
+  session_id INT,
+  language_code VARCHAR(5),
+  title TEXT,
+  text TEXT,
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+CREATE TABLE categories (
+  id INT PRIMARY KEY,
+  name VARCHAR(255)
+);
+
+CREATE TABLE categories_translations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    language_code CHAR(11) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+
+INSERT INTO categories_translations (category_id, language_code, name)
+VALUES (1, 'english    ', 'Values'),
+       (2, 'english    ', 'Self-Exploration'),
+       (3, 'english    ', 'Self-Analysis'),
+       (4, 'english    ', 'Goals'),
+       (5, 'english    ', 'Habits'),
+       (6, 'english    ', 'Gratitude'),
+       (7, 'english    ', 'Positive Psychology'),
+       (8, 'english    ', 'Mindfulness'),
+       (9, 'english    ', 'Emotional Intelligence'),
+       (10, 'english    ', 'Health and Wellness'),
+       (11, 'english    ', 'Productivity'),
+       (12, 'english    ', 'Learning'),
+       (13, 'english    ', 'Creativity'),
+       (14, 'english    ', 'Relationships');

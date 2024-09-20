@@ -1,11 +1,16 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { ChatRepository } from '../../core/chat/repositories/chat.repository'
 import { NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Chat } from '../../core/chat/entities/chat.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ChatOwnershipGuard implements CanActivate {
 
-  constructor(private readonly chatRepository: ChatRepository) {}
+  constructor(
+    @InjectRepository(Chat) 
+    private readonly chatRepository: Repository<Chat>,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

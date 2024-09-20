@@ -26,14 +26,20 @@ export class AuthService {
     return user;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string, user: any}>
+  {
     const user = await this.validateUser(loginDto);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const userWithoutPassword = { ...user, password: undefined };
+
     const payload = { email: user.email, sub: user.id };
-    return { access_token: this.jwtService.sign(payload) };
+    return { 
+      access_token: this.jwtService.sign(payload),
+       user: userWithoutPassword
+    };
   }
 
   async hashPassword(password: string): Promise<string> {
