@@ -6,7 +6,7 @@ export class SessionTranslation {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 5 })
+  @Column({ name: 'language_code' })
   languageCode: string;
 
   @Column('text')
@@ -15,9 +15,10 @@ export class SessionTranslation {
   @Column('text')
   text: string;
 
-  /**
-  @ManyToOne(() => Session, (session) => session.translations)
-  @JoinColumn({ name: 'sessionId' })
+  @Column({ name: 'session_id' })
+  sessionId: number;
+
+  @ManyToOne(() => Session, (session) => session.translations, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'session_id' })
   session: Session;
-  **/
 }

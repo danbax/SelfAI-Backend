@@ -6,7 +6,7 @@ import mysqlConfig from '../config/mysql.config';
 import { User } from '../core/users/entities/user.mysql-entity'
 import { Chat} from '../core/chat/entities/chat.entity'
 import { Message } from '../core/chat/entities/message.entity'
-import { Session } from '../core/chat/entities/session.entity'
+import { Session } from '../core/sessions/entities/session.entity'
 import { SessionTranslation } from '../core/sessions/entities/session-translation.entity'
 import { Category } from '../core/sessions/entities/category.entity'
 import { CategoryTranslation } from '../core/sessions/entities/category-translation.entity'

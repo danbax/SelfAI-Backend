@@ -73,6 +73,22 @@ CREATE TABLE categories (
   name VARCHAR(255)
 );
 
+INSERT INTO categories (id, name)
+VALUES (1, 'Values'),
+       (2,'Self-Exploration'),
+       (3,'Self-Analysis'),
+       (4,'Goals'),
+       (5,'Habits'),
+       (6,'Gratitude'),
+       (7,'Positive Psychology'),
+       (8,'Mindfulness'),
+       (9,'Emotional Intelligence'),
+       (10,'Health and Wellness'),
+       (11,'Productivity'),
+       (12,'Learning'),
+       (13,'Creativity'),
+       (14,'Relationships');
+
 CREATE TABLE categories_translations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     category_id INT NOT NULL,
@@ -83,17 +99,17 @@ CREATE TABLE categories_translations (
 
 
 INSERT INTO categories_translations (category_id, language_code, name)
-VALUES (1, 'english    ', 'Values'),
-       (2, 'english    ', 'Self-Exploration'),
-       (3, 'english    ', 'Self-Analysis'),
-       (4, 'english    ', 'Goals'),
-       (5, 'english    ', 'Habits'),
-       (6, 'english    ', 'Gratitude'),
-       (7, 'english    ', 'Positive Psychology'),
-       (8, 'english    ', 'Mindfulness'),
-       (9, 'english    ', 'Emotional Intelligence'),
-       (10, 'english    ', 'Health and Wellness'),
-       (11, 'english    ', 'Productivity'),
-       (12, 'english    ', 'Learning'),
-       (13, 'english    ', 'Creativity'),
-       (14, 'english    ', 'Relationships');
+VALUES (1, 'english', 'Values'),
+       (2, 'english', 'Self-Exploration'),
+       (3, 'english', 'Self-Analysis'),
+       (4, 'english', 'Goals'),
+       (5, 'english', 'Habits'),
+       (6, 'english', 'Gratitude'),
+       (7, 'english', 'Positive Psychology'),
+       (8, 'english', 'Mindfulness'),
+       (9, 'english', 'Emotional Intelligence'),
+       (10, 'english', 'Health and Wellness'),
+       (11, 'english', 'Productivity'),
+       (12, 'english', 'Learning'),
+       (13, 'english', 'Creativity'),
+       (14, 'english', 'Relationships');

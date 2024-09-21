@@ -15,10 +15,14 @@ export class CategoryTranslation {
   @Column({ type: 'varchar', length: 255, name: 'name' })
   name: string;
   
-  /**
+  @Column({ type: 'varchar', length: 500, name: 'description' })
+  description: string;
+
+  @Column({ type: 'varchar', length: 255, name: 'icon' })
+  icon: string
+  
   @ManyToOne(() => Category, (category) => category.translations, { onDelete: 'CASCADE' })
   
   @JoinColumn({ name: 'category_id' })
   category: Category;
-  **/
 }

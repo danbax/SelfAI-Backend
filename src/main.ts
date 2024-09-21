@@ -10,21 +10,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = new LoggerService();
 
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-      res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-      );
-      return res.status(200).json({});
-    }
-    next();
-  });
-
+  
   app.enableCors({
-    origin: ['*','http://localhost:5173/', 'http://localhost:5173'],
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
   });
 
@@ -33,7 +21,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   const port = configService.get<number>('PORT', 3000);
-  await app.listen(port);
-  logger.log(`Application listening on port ${port}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log('Server is running on port 3000');
+  });
 }
 bootstrap();

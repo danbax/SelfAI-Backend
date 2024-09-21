@@ -10,24 +10,12 @@ export class SessionTranslationRepository {
     private readonly sessionTranslationRepository: Repository<SessionTranslation>,
   ) {}
 
-  async findBySessionIdAndLanguage(sessionId: number, languageCode: string = 'english'): Promise<SessionTranslation[]> {
-    return this.sessionTranslationRepository
-      .createQueryBuilder('sessionTranslation')
-      .where('sessionTranslation.sessionId = :sessionId', { sessionId })
-      .andWhere('sessionTranslation.languageCode = :languageCode', {
-        languageCode
-      })
-      .getMany();
-  }
-
   async findByCategoryAndLanguage(categoryId: number, languageCode: string = 'english'): Promise<SessionTranslation[]> {
     return this.sessionTranslationRepository
       .createQueryBuilder('sessionTranslation')
-      .leftJoin('sessionTranslation.session', 'session')
+      .innerJoin('sessionTranslation.session', 'session')
       .where('session.categoryId = :categoryId', { categoryId })
-      .andWhere('sessionTranslation.languageCode = :languageCode', {
-        languageCode
-      })
+      .andWhere('sessionTranslation.languageCode = :languageCode', { languageCode })
       .getMany();
   }
 }
