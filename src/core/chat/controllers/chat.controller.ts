@@ -6,6 +6,7 @@ import { ChatOwnershipGuard } from '../../../common/guards/chat-ownership.guard'
 import { TokenValidationGuard } from '../../../common/guards/token-validation.guard';
 import { UserRequest } from '../../../common/interfaces/user-request.interface';
 import { JwtService } from '@nestjs/jwt';
+import { CreateMessageDto } from '../dto/create-message.dto';
 
 @Controller('chats')
 export class ChatController {
@@ -20,9 +21,9 @@ export class ChatController {
     return this.chatService.getChatWithMessages(chatId);
   }
 
-  @Get()
+  @Post()
   @UseGuards(TokenValidationGuard)
-  async getAllChats(@Req() req: UserRequest, @Query('finished') finished?: boolean) {
+  async getAllChats(@Req() req: UserRequest, @Body('finished') finished?: boolean) {
     const userId = req.user.id;
     return this.chatService.getAllChats(userId, finished);
   }
@@ -31,5 +32,11 @@ export class ChatController {
   @UseGuards(TokenValidationGuard)
   async startNewChat(@Body() createChatDto: CreateChatDto) {
     return this.chatService.createNewChat(createChatDto);
+  }
+
+  @Post()
+  @UseGuards(TokenValidationGuard)
+  async addMessageToChat(@Body() createMessageDto: CreateMessageDto) {
+    return this.chatService.addMessageToChat(createMessageDto);
   }
 }

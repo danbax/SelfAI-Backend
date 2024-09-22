@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { Chat } from './chat.entity';
 
-@Entity('message')
+@Entity('messages')
 export class Message {
   @PrimaryGeneratedColumn()
   id: number;
@@ -10,7 +10,7 @@ export class Message {
   chatId: number;
 
   @Column()
-  role: 'user' | 'system';
+  role: 'user' | 'system' | 'assistant';
 
   @Column('text')
   message: string;

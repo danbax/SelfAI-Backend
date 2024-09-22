@@ -1,6 +1,8 @@
+// session.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { Category } from './category.entity';
+import { CategoryTranslation } from './category-translation.entity';
 import { SessionTranslation } from './session-translation.entity';
+import { Chat } from '../../chat/entities/chat.entity';
 
 @Entity('sessions')
 export class Session {
@@ -13,10 +15,13 @@ export class Session {
   @Column({ name: 'system_prompt' })
   systemPrompt: string;
 
-  @ManyToOne(() => Category, (category) => category.sessions)
+  @ManyToOne(() => CategoryTranslation, (categoryTranslation) => categoryTranslation.sessions)
   @JoinColumn({ name: 'category_id' })
-  category: Category;
+  category: CategoryTranslation;
 
   @OneToMany(() => SessionTranslation, (translation) => translation.session, { cascade: true })
   translations: SessionTranslation[];
+
+  @OneToMany(() => Chat, chat => chat.session)
+  chats: Chat[];
 }

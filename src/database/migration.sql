@@ -33,7 +33,7 @@ INSERT INTO `chat` (`user_id`, `session_type`) VALUES
 (1, 'self_analysis');
 
 -- Create the message table
-CREATE TABLE `message` (
+CREATE TABLE `messages` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `chat_id` INT NOT NULL,
   `role` ENUM('user', 'system') NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE `message` (
 );
 
 -- Insert mock data into message table
-INSERT INTO `message` (`chat_id`, `role`, `message`) VALUES
+INSERT INTO `messages` (`chat_id`, `role`, `message`) VALUES
 (1, 'user', 'I want to set a goal.'),
 (1, 'system', 'What goal would you like to set?'),
 (1, 'user', 'I want to become more productive.'),

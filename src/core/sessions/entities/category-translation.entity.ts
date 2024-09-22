@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Category } from './category.entity';
+import { Session } from './session.entity';
 
 @Entity('categories_translations')
 export class CategoryTranslation {
@@ -25,4 +26,7 @@ export class CategoryTranslation {
   
   @JoinColumn({ name: 'category_id' })
   category: Category;
+
+  @OneToMany(() => Session, (session) => session.category)
+  sessions: Session[];
 }

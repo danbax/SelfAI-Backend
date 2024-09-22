@@ -1,3 +1,4 @@
+// category.entity.ts
 import { Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { CategoryTranslation } from './category-translation.entity';
 import { Session } from './session.entity';
