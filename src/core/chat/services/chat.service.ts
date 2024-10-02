@@ -10,6 +10,7 @@ import { CreateMessageDto } from '../dto/create-message.dto';
 import { SessionTransferDto } from '../dto/transformers/SessionTransferDto';
 import { PaginationDTO } from '../../../common/dto/pagination.dto';
 import { ChatWithMessagesDto } from '../dto/transformers/ChatWithMessagesDTO';
+import { LLMMessageDto } from 'src/core/llm/dto/llm-request.dto';
 
 @Injectable()
 export class ChatService {
@@ -18,6 +19,30 @@ export class ChatService {
     @InjectRepository(Message) private messageRepository: Repository<Message>,
     private readonly cacheService: CacheService
   ) {}
+
+  async getChatMessages(chatId: number): Promise<LLMMessageDto[] | null> {
+    const cacheKey = `chat_messages_${chatId}`;
+    const cachedMessages = this.cacheService.get<LLMMessageDto[]>(cacheKey);
+  
+    if (cachedMessages) return cachedMessages;
+  
+    const chat = await this.chatRepository.createQueryBuilder('chat')
+      .leftJoinAndSelect('chat.messages', 'messages')
+      .where('chat.id = :chatId', { chatId })
+      .orderBy('messages.id', 'ASC')
+      .getOne();
+  
+    if (!chat) return null;
+  
+    const formattedMessages = chat.messages.map(message => ({
+      role: message.role,
+      content: message.message
+    }));
+  
+    this.cacheService.set(cacheKey, formattedMessages);
+  
+    return formattedMessages;
+  }
 
   async getChatWithMessages(chatId: number, languageCode: string = 'english'): Promise<ChatWithMessagesDto | null> {
     const cacheKey = `chat_${chatId}`;

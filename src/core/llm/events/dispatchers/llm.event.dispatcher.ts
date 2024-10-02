@@ -1,5 +1,3 @@
-// src/events/dispatchers/llm.event.dispatcher.ts
-
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -7,7 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 export class LLMEventDispatcher {
   constructor(private eventEmitter: EventEmitter2) {}
 
-  emitLLMRequest(prompt: string) {
-    this.eventEmitter.emit('llm.request', { prompt });
+  emitEvent(action: string, parameters: any) {
+    this.eventEmitter.emit(action, parameters);
   }
 }

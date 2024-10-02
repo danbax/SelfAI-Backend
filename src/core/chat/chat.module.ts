@@ -17,6 +17,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TokenValidationGuard } from '../../common/guards/token-validation.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LLMFacade } from '../llm/facades/llm.facade';
 
 @Module({
   controllers: [ChatController, MessageController],
@@ -42,7 +43,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       ChatService,
       MessageService,
       SessionService,
-      TokenValidationGuard
+      LLMFacade,
+      TokenValidationGuard,
+      LLMFacade
     ],
 })
 export class ChatModule {}

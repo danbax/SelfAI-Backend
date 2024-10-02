@@ -1,59 +1,70 @@
-// src/core/llm/adapters/claude.adapter.ts
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import axios from 'axios';
 import { LLMService } from '../interfaces/llm-service.interface';
 import { LLMRequestDto } from '../dto/llm-request.dto';
 import { LLMResponseDto } from '../dto/llm-response.dto';
+import { ChatAnthropic } from '@langchain/anthropic';
+import { HumanMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class ClaudeAdapter implements LLMService {
-  private readonly apiUrl = process.env.CLAUDE_API_URL;
-  private readonly apiKey = process.env.CLAUDE_API_KEY;
+  private readonly apiKey = process.env.ANTHROPIC_API_KEY;
 
   async generateText(request: LLMRequestDto): Promise<LLMResponseDto> {
     const startTime = Date.now();
-    const response = await this.callClaudeApi(request);
+    const { response, usage } = await this.callLangChainModel(request);
     const timeTaken = Date.now() - startTime;
 
-    return this.mapToDto(response.data, request.model, timeTaken);
+    return this.mapToDto(response, request.model, timeTaken, usage);
   }
 
-  private async callClaudeApi(request: LLMRequestDto) {
+  private async callLangChainModel(request: LLMRequestDto): Promise<{ response: string, usage: { prompt_tokens: number, completion_tokens: number } }> {
     try {
-      return await axios.post(
-        this.apiUrl,
-        {
-          model: request.version,
-          conversation: request.messages,
-          max_tokens: request.maxTokens,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        },
+      const chatModel = new ChatAnthropic({
+        modelName: request.model,
+        temperature: request.temperature ?? 0.7,
+        maxTokens: request.maxTokens,
+        anthropicApiKey: this.apiKey,
+      });
+
+      const messages: BaseMessage[] = request.messages.map(msg => 
+        msg.role === 'system' ? new SystemMessage(msg.content) : new HumanMessage(msg.content)
       );
+
+      const result = await chatModel.invoke(messages);
+      const response = result.content.toString();
+
+      const usage = {
+        prompt_tokens: this.estimateTokens(messages.map(m => m.content).join(' ')),
+        completion_tokens: this.estimateTokens(response.toString()),
+      };
+
+      return { response, usage };
     } catch (error) {
       throw new HttpException(
-        error.response?.data?.error?.message || 'An error occurred while calling Claude API',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        error.message || 'An error occurred while calling LangChain model',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  private mapToDto(responseData: any, model: string, timeTaken: number): LLMResponseDto {
+  private estimateTokens(text: string): number {
+    return Math.ceil(text.length / 4);
+  }
+
+  private mapToDto(responseText: string, model: string, timeTaken: number, usage: { prompt_tokens: number, completion_tokens: number }): LLMResponseDto {
+    const totalTokens = usage.prompt_tokens + usage.completion_tokens;
+    
     return {
-      text: responseData.completion,
-      tokenUsage: responseData.usage?.total_tokens || 0, // Assuming Claude provides token info
-      price: this.calculatePrice(responseData.usage?.total_tokens || 0),
+      text: responseText,
+      tokenUsage: totalTokens,
+      price: this.calculatePrice(model, totalTokens),
       model: model,
       timeTaken: timeTaken,
     };
   }
 
-  private calculatePrice(tokens: number): number {
-    const pricePerToken = 0.000015;
+  private calculatePrice(model: string, tokens: number): number {
+    const pricePerToken = 0.000011;
     return tokens * pricePerToken;
   }
 }
