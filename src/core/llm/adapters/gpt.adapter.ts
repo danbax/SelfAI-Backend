@@ -8,7 +8,7 @@ import { LLMResponseDto } from '../dto/llm-response.dto';
 @Injectable()
 export class GPTAdapter implements LLMService {
   private readonly apiUrl = process.env.GPT_API_URL;
-  private readonly apiKey = process.env.GPT_API_KEY;
+  private readonly apiKey = process.env.OPENAI_API_KEY;
 
   async generateText(request: LLMRequestDto): Promise<LLMResponseDto> {
     const startTime = Date.now();

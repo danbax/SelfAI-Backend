@@ -1,3 +1,5 @@
+// src/core/chat/entities/chat.entity.ts
+
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { Message } from './message.entity';
 import { SessionTranslation } from '../../sessions/entities/session-translation.entity';
@@ -14,7 +16,7 @@ export class Chat {
   @Column({ name: 'user_id' })
   userId: number;
 
-  @Column({ name: 'create_date' })
+  @CreateDateColumn({ name: 'create_date' })
   createDate: Date;
 
   @OneToMany(() => Message, message => message.chat)
@@ -27,9 +29,7 @@ export class Chat {
   @JoinColumn({ name: 'session_id' })
   sessionTranslation: SessionTranslation;
 
-  
   @ManyToOne(() => Session, session => session.chats)
   @JoinColumn({ name: 'session_id' })
   session: Session;
-
 }

@@ -1,6 +1,7 @@
 import { Message } from '../entities/message.entity';
 import { CreateChatDto } from '../dto/create-chat.dto';
 import { Chat } from '../entities/chat.entity';
+import { SessionTransferDto } from '../dto/transformers/SessionTransferDto';
 
 export interface IChat {
   id: number;
@@ -11,7 +12,7 @@ export interface IChat {
 
 export interface IChatService {
   getChatWithMessages(chatId: number): Promise<Chat | null>;
-  getAllChats(userId: number, inished?: boolean): Promise<Chat[]>;
+  getAllChats(userId: number, inished?: boolean): Promise<SessionTransferDto[]>;
   createNewChat(createChatDto: CreateChatDto): Promise<Chat>;
   
 }
