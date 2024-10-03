@@ -29,9 +29,14 @@ export class ChatController {
     return this.chatService.getAllChats(userId, paginationDto, search, finished);
   }
 
-  @Post()
+  @Post('create')
   @UseGuards(TokenValidationGuard)
-  async startNewChat(@Body() createChatDto: CreateChatDto) {
+  async startNewChat(
+    @Req() req: UserRequest,
+    @Body() createChatDto: CreateChatDto
+  ) {
+    const userId = req.user.id;
+    createChatDto.userId = userId;
     return this.chatService.createNewChat(createChatDto);
   }
 

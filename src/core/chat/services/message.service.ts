@@ -1,7 +1,5 @@
-// message.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { Message } from '../entities/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,8 +9,8 @@ import { ChatService } from './chat.service';
 import { LLMFacade } from 'src/core/llm/facades/llm.facade';
 import { LLMResponseClientDto, LLMResponseDto } from 'src/core/llm/dto/llm-response.dto';
 import { UpdateMessageDto } from '../dto/update-message.dto';
-import { Chat } from '../entities/chat.entity';
 import { CreateMessageDto } from '../dto/create-message.dto';
+import { Chat } from '../entities/chat.entity';
 
 @Injectable()
 export class MessageService {
@@ -25,9 +23,40 @@ export class MessageService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async addMessage(createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
-    this.chatService.addMessageToChat(createMessageDto);
+  @OnEvent('chat.created')
+  async handleChatCreated(chat: Chat): Promise<void> {
+    await this.addAssistantMessageToChat(chat.id);
+  }
 
+  async addMessage(createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+    await this.addUserMessageToChat(createMessageDto);
+    const chatMessages = await this.getChatMessagesWithNewMessage(createMessageDto);
+    const llmResponse = await this.generateLLMResponse(chatMessages);
+    return this.processAndAddAssistantResponse(llmResponse, createMessageDto.chat_id);
+  }
+
+  async updateMessage(id: number, updateMessageDto: UpdateMessageDto): Promise<Message> {
+    const message = await this.findMessageById(id);
+    if (!message) return null;
+    return this.updateAndSaveMessage(message, updateMessageDto);
+  }
+
+  async deleteMessage(id: number): Promise<void> {
+    const result = await this.messageRepository.delete(id);
+    if (result.affected === 0) return;
+  }
+
+  private async addAssistantMessageToChat(chatId: number): Promise<LLMResponseClientDto> {
+    const chatMessages = await this.chatService.getChatMessages(chatId);
+    const llmResponse = await this.generateLLMResponse(chatMessages);
+    return this.processAndAddAssistantResponse(llmResponse, chatId);
+  }
+
+  private async addUserMessageToChat(createMessageDto: CreateMessageDto): Promise<void> {
+    await this.chatService.addMessageToChat(createMessageDto);
+  }
+
+  private async getChatMessagesWithNewMessage(createMessageDto: CreateMessageDto): Promise<LLMMessageDto[]> {
     const chatMessages = await this.chatService.getChatMessages(createMessageDto.chat_id);
     const newMessage: LLMMessageDto = {
       role: createMessageDto.role as 'user' | 'system' | 'assistant',
@@ -36,47 +65,60 @@ export class MessageService {
     chatMessages.push(newMessage);
 
     const cacheKey = `chat_messages_${createMessageDto.chat_id}`;
-    this.cacheService.set(cacheKey, chatMessages);
+    await this.cacheService.set(cacheKey, chatMessages);
 
+    return chatMessages;
+  }
+
+  private async generateLLMResponse(chatMessages: LLMMessageDto[]): Promise<LLMResponseDto> {
     const llmRequestDto: LLMRequestDto = {
       model: 'gpt',
       version: 'gpt-4o',
       messages: chatMessages,
       maxTokens: null,
     };
+    return this.llmFacade.generateText(llmRequestDto);
+  }
 
-    const response: LLMResponseDto = await this.llmFacade.generateText(llmRequestDto);
-
-    let createAssistantMessageDto: CreateMessageDto = {
-      chat_id: createMessageDto.chat_id,
+  private async processAndAddAssistantResponse(response: LLMResponseDto, chatId: number): Promise<LLMResponseClientDto> {
+    const createAssistantMessageDto: CreateMessageDto = {
+      chat_id: chatId,
       role: 'assistant',
       message: null,
     };
 
-    const responseClient = this.processResponse(response.text, createAssistantMessageDto);
-
-    return responseClient;
+    return this.processResponse(response.text, createAssistantMessageDto);
   }
 
   private async processResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
     if (!this.isValidJson(text)) {
-      createMessageDto.message = text;
-      this.chatService.addMessageToChat(createMessageDto);
-      return { text };
+      return this.handlePlainTextResponse(text, createMessageDto);
     }
+    return this.handleJsonResponse(text, createMessageDto);
+  }
 
-    const data = JSON.parse(text);
-    text = data.text;
-    const payload = data.payload;
-
+  private async handlePlainTextResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
     createMessageDto.message = text;
-    this.chatService.addMessageToChat(createMessageDto);
+    await this.chatService.addMessageToChat(createMessageDto);
+    return { text };
+  }
 
-    for(const action of payload.actions) {
-      this.eventEmitter.emitAsync(action.name, ...action.parameters);
+  private async handleJsonResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+    const data = JSON.parse(text);
+    const { text: responseText, payload } = data;
+
+    createMessageDto.message = responseText;
+    await this.chatService.addMessageToChat(createMessageDto);
+
+    await this.emitActions(payload.actions);
+
+    return { text: responseText, payload };
+  }
+
+  private async emitActions(actions: any[]): Promise<void> {
+    for (const action of actions) {
+      await this.eventEmitter.emitAsync(action.name, ...action.parameters);
     }
-
-    return { text, payload };
   }
 
   private isValidJson(text: string): boolean {
@@ -88,15 +130,12 @@ export class MessageService {
     }
   }
 
-  async updateMessage(id: number, updateMessageDto: UpdateMessageDto): Promise<Message> {
-    const message = await this.messageRepository.findOne({ where: { id } });
-    if (!message) return null;
-    Object.assign(message, updateMessageDto);
-    return this.messageRepository.save(message);
+  private async findMessageById(id: number): Promise<Message | null> {
+    return this.messageRepository.findOne({ where: { id } });
   }
 
-  async deleteMessage(id: number): Promise<void> {
-    const result = await this.messageRepository.delete(id);
-    if (result.affected === 0) return;
+  private async updateAndSaveMessage(message: Message, updateMessageDto: UpdateMessageDto): Promise<Message> {
+    Object.assign(message, updateMessageDto);
+    return this.messageRepository.save(message);
   }
 }

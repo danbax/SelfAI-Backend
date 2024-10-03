@@ -5,7 +5,7 @@ import { MessageService } from './services/message.service';
 import { SessionService } from './services/session.service';
 import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
-import { Session } from './entities/session.entity';
+import { Session } from '../sessions/entities/session.entity';
 import { ChatRepository } from './repositories/chat.repository';
 import { MessageRepository } from './repositories/message.repository';
 import { SessionRepository } from './repositories/session.repository';
