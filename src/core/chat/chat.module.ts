@@ -18,13 +18,14 @@ import { PassportModule } from '@nestjs/passport';
 import { TokenValidationGuard } from '../../common/guards/token-validation.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LLMFacade } from '../llm/facades/llm.facade';
+import { LLMFactoryService } from '../llm/factories/llm-service.factory';
+import { LLMContext } from '../llm/strategies/llm-context.strategy';
+import { GPTAdapter } from '../llm/adapters/gpt.adapter';
+import { ClaudeAdapter } from '../llm/adapters/claude.adapter';
 
 @Module({
   controllers: [ChatController, MessageController],
   imports: [
-    ChatRepository,
-    MessageRepository,
-    SessionRepository,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -38,14 +39,26 @@ import { LLMFacade } from '../llm/facades/llm.facade';
     AuthModule,
     TypeOrmModule.forFeature([Chat, Message, Session]),
   ],
-  providers: [TokenValidationGuard, ChatService, MessageService, SessionService, ChatRepository, MessageRepository, SessionRepository],
+  providers: [
+    GPTAdapter,
+    ClaudeAdapter,
+    LLMContext,
+    LLMFacade,
+    LLMFactoryService,
+    TokenValidationGuard,
+    ChatService,
+    MessageService,
+    SessionService,
+    ChatRepository,
+    MessageRepository,
+    SessionRepository
+  ],
   exports: [
-      ChatService,
-      MessageService,
-      SessionService,
-      LLMFacade,
-      TokenValidationGuard,
-      LLMFacade
-    ],
+    ChatService,
+    MessageService,
+    SessionService,
+    LLMFacade,
+    TokenValidationGuard
+  ],
 })
 export class ChatModule {}

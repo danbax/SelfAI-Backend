@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { plainToClass } from 'class-transformer';
 import { Chat } from '../entities/chat.entity';
 import { Message } from '../entities/message.entity';
+import { Session } from '../entities/session.entity';
 import { CacheService } from '../../../common/services/cache.service';
 import { CreateChatDto } from '../dto/create-chat.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
@@ -17,6 +18,7 @@ export class ChatService {
   constructor(
     @InjectRepository(Chat) private chatRepository: Repository<Chat>,
     @InjectRepository(Message) private messageRepository: Repository<Message>,
+    @InjectRepository(Session) private sessionRepository: Repository<Session>,
     private readonly cacheService: CacheService
   ) {}
 
@@ -51,12 +53,14 @@ export class ChatService {
     if (cachedChat) return cachedChat;
 
     const chat = await this.chatRepository.createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.messages', 'messages')
+      .leftJoinAndSelect('chat.messages', 'messages', 'messages.role != :systemRole')
       .leftJoinAndSelect('chat.session', 'session')
       .leftJoinAndSelect('session.translations', 'translations', 'translations.languageCode = :languageCode')
       .where('chat.id = :chatId', { chatId })
       .setParameter('languageCode', languageCode)
+      .setParameter('systemRole', 'system')
       .getOne();
+
 
     if (!chat) return null;
 
@@ -157,7 +161,20 @@ export class ChatService {
     
     const updatedChats = [...cachedChats, savedChat];
     this.cacheService.set(cacheKey, updatedChats);
-  
+
+    const session = await this.sessionRepository.findOne({
+      where: { id: createChatDto.session_id },
+      select: ['systemPrompt'],
+    });    
+
+    const systemPrompt = session?.systemPrompt;
+
+    this.addMessageToChat({
+      chat_id: savedChat.id,
+      role: 'system',
+      message: systemPrompt
+    });
+
     return savedChat;
   }
 

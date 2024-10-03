@@ -13,6 +13,10 @@ export class LLMResponseClientDto {
 }
   
 export class LLMResponseClientDtoPayload {
-  action: string;              
+  actions: LLMResponseClientDtoPayloadAction[];
+}
+
+export class LLMResponseClientDtoPayloadAction {
+  name: string;              
   parameters: any[];
 }

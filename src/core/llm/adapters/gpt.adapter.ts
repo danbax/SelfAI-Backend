@@ -15,7 +15,7 @@ export class GPTAdapter implements LLMService {
     const { response, promptTokens } = await this.callLangChainModel(request);
     const timeTaken = Date.now() - startTime;
 
-    return this.mapToDto(response, request.model, timeTaken, promptTokens);
+    return this.mapToDto(response, request.version, timeTaken, promptTokens);
   }
 
   private async callLangChainModel(request: LLMRequestDto): Promise<{ response: string, promptTokens: number }> {
@@ -23,32 +23,22 @@ export class GPTAdapter implements LLMService {
       let response: string;
       let promptTokens: number;
 
-      if (request.model.toLowerCase().includes('gpt-3.5') || request.model.toLowerCase().includes('gpt-4')) {
-        const chatModel = new ChatOpenAI({
-          modelName: request.model,
-          temperature: request.temperature ?? 0.7,
-          maxTokens: request.maxTokens,
-          openAIApiKey: this.apiKey,
-        });
-
-        const messages: BaseMessage[] = request.messages.map(msg => 
-          msg.role === 'system' ? new SystemMessage(msg.content) : new HumanMessage(msg.content)
-        );
-
-        promptTokens = this.countTokens(request.model, messages.map(m => m.content).join('\n'));
-        const chatResponse = await chatModel.invoke(messages);
-        response = Array.isArray(chatResponse.content) ? chatResponse.content.join(' ') : chatResponse.content;
-      } else {
-        const model = new OpenAI({
-          modelName: request.model,
-          temperature: request.temperature ?? 0.7,
-          maxTokens: request.maxTokens,
-          openAIApiKey: this.apiKey,
-        });
-
-        promptTokens = this.countTokens(request.model, request.messages[request.messages.length - 1].content);
-        response = await model.invoke(request.messages[request.messages.length - 1].content);
+      const modelConfig = {
+        modelName: request.version,
+        temperature: request.temperature ?? 0.7,
+        maxTokens: request.maxTokens,
+        openAIApiKey: this.apiKey,
       }
+
+      const chatModel = new ChatOpenAI(modelConfig);
+
+      const messages: BaseMessage[] = request.messages.map(msg => 
+        msg.role === 'system' ? new SystemMessage(msg.content) : new HumanMessage(msg.content)
+      );
+
+      promptTokens = this.countTokens(request.version, messages.map(m => m.content).join('\n'));
+      const chatResponse = await chatModel.invoke(messages);
+      response = Array.isArray(chatResponse.content) ? chatResponse.content.join(' ') : chatResponse.content;
 
       return { response, promptTokens };
     } catch (error) {

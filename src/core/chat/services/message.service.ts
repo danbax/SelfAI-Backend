@@ -1,6 +1,6 @@
 // message.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { Message } from '../entities/message.entity';
@@ -11,6 +11,8 @@ import { ChatService } from './chat.service';
 import { LLMFacade } from 'src/core/llm/facades/llm.facade';
 import { LLMResponseClientDto, LLMResponseDto } from 'src/core/llm/dto/llm-response.dto';
 import { UpdateMessageDto } from '../dto/update-message.dto';
+import { Chat } from '../entities/chat.entity';
+import { CreateMessageDto } from '../dto/create-message.dto';
 
 @Injectable()
 export class MessageService {
@@ -23,18 +25,17 @@ export class MessageService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async addMessage(createMessageDto: Message): Promise<LLMResponseClientDto> {
-    const message = this.messageRepository.create(createMessageDto);
-    await this.messageRepository.save(message);
+  async addMessage(createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+    this.chatService.addMessageToChat(createMessageDto);
 
-    const chatMessages = await this.chatService.getChatMessages(message.chatId);
+    const chatMessages = await this.chatService.getChatMessages(createMessageDto.chat_id);
     const newMessage: LLMMessageDto = {
-      role: message.role as 'user' | 'system' | 'assistant',
-      content: message.message,
+      role: createMessageDto.role as 'user' | 'system' | 'assistant',
+      content: createMessageDto.message,
     };
     chatMessages.push(newMessage);
 
-    const cacheKey = `chat_messages_${createMessageDto.chatId}`;
+    const cacheKey = `chat_messages_${createMessageDto.chat_id}`;
     this.cacheService.set(cacheKey, chatMessages);
 
     const llmRequestDto: LLMRequestDto = {
@@ -46,25 +47,36 @@ export class MessageService {
 
     const response: LLMResponseDto = await this.llmFacade.generateText(llmRequestDto);
 
-    const responseClient = this.processResponse(response.text);
+    let createAssistantMessageDto: CreateMessageDto = {
+      chat_id: createMessageDto.chat_id,
+      role: 'assistant',
+      message: null,
+    };
+
+    const responseClient = this.processResponse(response.text, createAssistantMessageDto);
 
     return responseClient;
   }
 
-  private async processResponse(text: string): Promise<LLMResponseClientDto> {
+  private async processResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
     if (!this.isValidJson(text)) {
+      createMessageDto.message = text;
+      this.chatService.addMessageToChat(createMessageDto);
       return { text };
     }
 
-    const payload = JSON.parse(text);
+    const data = JSON.parse(text);
+    text = data.text;
+    const payload = data.payload;
 
-    if (!payload.action) {
-      return { text, payload };
+    createMessageDto.message = text;
+    this.chatService.addMessageToChat(createMessageDto);
+
+    for(const action of payload.actions) {
+      this.eventEmitter.emitAsync(action.name, ...action.parameters);
     }
 
-    this.eventEmitter.emitAsync(payload.action, ...payload.parameters);
-
-    return { text };
+    return { text, payload };
   }
 
   private isValidJson(text: string): boolean {
