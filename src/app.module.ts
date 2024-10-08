@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './events/events.module';
+import { NotificationsModule } from './core/notifications/notifications.module';
 import { I18nModule, I18nJsonLoader, QueryResolver, AcceptLanguageResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
@@ -36,6 +37,7 @@ import * as path from 'path';
     CommonModule,
     DatabaseModule,
     EventsModule,
+    NotificationsModule
   ],
 })
 export class AppModule {}

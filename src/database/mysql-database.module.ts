@@ -10,6 +10,7 @@ import { Session } from '../core/sessions/entities/session.entity'
 import { SessionTranslation } from '../core/sessions/entities/session-translation.entity'
 import { Category } from '../core/sessions/entities/category.entity'
 import { CategoryTranslation } from '../core/sessions/entities/category-translation.entity'
+import { Notification } from '../core/notifications/entities/notification.entity'
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { CategoryTranslation } from '../core/sessions/entities/category-translat
           Session,
           SessionTranslation,
           Category,
-          CategoryTranslation
+          CategoryTranslation,
+          Notification
         ],
         synchronize: false
       }),

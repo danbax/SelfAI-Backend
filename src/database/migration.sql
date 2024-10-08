@@ -113,3 +113,21 @@ VALUES (1, 'english', 'Values'),
        (12, 'english', 'Learning'),
        (13, 'english', 'Creativity'),
        (14, 'english', 'Relationships');
+
+CREATE TABLE notifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    text TEXT NOT NULL,
+    icon VARCHAR(255),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+INSERT INTO notifications (user_id, title, text, icon, is_read, created_at)
+VALUES 
+(1, 'New Message', 'You have a new message in your inbox', 'mdi-email', FALSE, NOW()),
+(2, 'Profile Update', 'Your profile has been successfully updated', 'mdi-account', TRUE, NOW()),
+(3, 'Task Completed', 'Your task has been marked as completed', 'mdi-check-circle', FALSE, NOW()),
+(4, 'Friend Request', 'You have received a new friend request', 'mdi-account-plus', FALSE, NOW());
