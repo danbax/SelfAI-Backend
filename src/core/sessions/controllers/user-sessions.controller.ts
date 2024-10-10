@@ -1,5 +1,6 @@
-// session.controller.ts
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+// src/core/sessions/controllers/sessions.controller.ts
+
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { SessionService } from '../services/session.service';
 import { GetSessionsDto } from '../dto/get-sessions.dto';
 import { TokenValidationGuard } from '../../../common/guards/token-validation.guard';
@@ -13,9 +14,9 @@ export class SessionController {
   @Post()
   async getSessions(
     @Req() req: UserRequest,
-    @Body() sessionDTO: GetSessionsDto
-  ) {
+    @Body() body: GetSessionsDto, 
+) {
     const userId = req.user.id;
-    return this.sessionService.getSessions(sessionDTO, userId);
+    return this.sessionService.getSessions(body, userId);
   }
 }

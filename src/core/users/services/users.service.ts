@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.mysql-entity';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { User } from '../entities/user.mysql-entity';
+import { UserRepository } from '../repositories/user.repository';
+import { UpdateUserSettingsDto } from '../dto/update-user-settings.dto';
 
 
 @Injectable()
@@ -42,6 +44,24 @@ export class UsersService {
       console.error(error);
       throw error;
     }
+  }
+
+  async updateSettings(userId: number, updateUserSettingsDto: UpdateUserSettingsDto): Promise<User> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const updatedUser = this.userRepository.merge(user, updateUserSettingsDto);
+    return this.userRepository.save(updatedUser);
+  }
+
+  async getSettings(userId: number): Promise<Partial<User>> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const { firstName, lastName, birthDate, darkMode, pinCode } = user;
+    return { firstName, lastName, birthDate, darkMode, pinCode };
   }
   
 }

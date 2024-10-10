@@ -11,6 +11,7 @@ import { SessionTranslation } from '../core/sessions/entities/session-translatio
 import { Category } from '../core/sessions/entities/category.entity'
 import { CategoryTranslation } from '../core/sessions/entities/category-translation.entity'
 import { Notification } from '../core/notifications/entities/notification.entity'
+import { UserSession } from 'src/core/sessions/entities/user-session.entity';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { Notification } from '../core/notifications/entities/notification.entity
           SessionTranslation,
           Category,
           CategoryTranslation,
-          Notification
+          Notification,
+          UserSession
         ],
         synchronize: false
       }),
