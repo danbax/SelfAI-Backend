@@ -1,37 +1,26 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
+// src/core/users/controllers/user-settings.controller.ts
+
+import { Controller, Get, Put, Body, UseGuards, Req } from '@nestjs/common';
 import { UsersService } from './services/users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { I18nContext, I18nService } from 'nestjs-i18n';
+import { UpdateUserSettingsDto } from './dto/update-user-settings.dto';
+import { TokenValidationGuard } from '../../common/guards/token-validation.guard';
+import { UserRequest } from '../../common/interfaces/user-request.interface';
 
 @Controller('users')
+@UseGuards(TokenValidationGuard)
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly i18n: I18nService
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @Get('settings')
+  async getSettings(@Req() req: UserRequest) {
+    return this.usersService.getSettings(req.user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
-  }
-
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: CreateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @Put('settings')
+  async updateSettings(
+    @Req() req: UserRequest,
+    @Body() updateUserSettingsDto: UpdateUserSettingsDto,
+  ) {
+    return this.usersService.updateSettings(req.user.id, updateUserSettingsDto);
   }
 }

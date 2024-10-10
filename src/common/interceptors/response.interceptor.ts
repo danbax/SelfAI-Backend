@@ -1,23 +1,36 @@
-// src/common/interceptors/response.interceptor.ts
 import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const now = new Date();
     return next.handle().pipe(
-      map((data) => ({
-        status: 'ok',
-        serverResponseTime: now.toISOString(),
-        response: data,
-      })),
+      catchError((err) => {
+        const status =
+          err instanceof HttpException
+            ? err.getStatus()
+            : HttpStatus.INTERNAL_SERVER_ERROR;
+
+        const response = {
+          message: err.message || 'An error occurred',
+          statusCode: status,
+        };
+
+        // Add stack trace if it's an internal server error
+        if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+          response['stack'] = err.stack;
+        }
+
+        return throwError(() => response);
+      }),
     );
   }
 }

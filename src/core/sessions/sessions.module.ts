@@ -14,6 +14,11 @@ import { CategoryRepository } from './repositories/category.repository';
 import { CategoryTranslationRepository } from './repositories/category-translation.repository';
 import { SessionRepository } from './repositories/session.repository';
 import { SessionTranslationRepository } from './repositories/session-translation.repository';
+import { UserSessionsService } from './services/user-sessions.service';
+import { UserSession } from './entities/user-session.entity';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
 
 @Module({
   imports: [
@@ -21,8 +26,17 @@ import { SessionTranslationRepository } from './repositories/session-translation
       Category, 
       CategoryTranslation, 
       Session, 
-      SessionTranslation
+      SessionTranslation,
+      UserSession
     ]),
+    JwtModule.registerAsync({
+        imports: [ConfigModule],
+        useFactory: async (configService: ConfigService) => ({
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: { expiresIn: '60d' },
+        }),
+        inject: [ConfigService],
+      }),
   ],
   controllers: [CategoryController, SessionController],
   providers: [
@@ -32,7 +46,8 @@ import { SessionTranslationRepository } from './repositories/session-translation
     CategoryTranslationRepository,
     SessionRepository,
     SessionTranslationRepository,
+    UserSessionsService
   ],
-  exports: [CategoryService, SessionService],
+  exports: [CategoryService, SessionService, UserSessionsService],
 })
 export class SessionsModule {}

@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt'; // Assuming you are using JWT for tokens
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class TokenValidationGuard implements CanActivate {
@@ -7,10 +7,16 @@ export class TokenValidationGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['x-api-key'];
+    const authHeader = request.headers['authorization'];
     
-    if (!token) {
-      throw new UnauthorizedException('Token is missing');
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization header is missing');
+    }
+
+    const [bearer, token] = authHeader.split(' ');
+
+    if (bearer !== 'Bearer' || !token) {
+      throw new UnauthorizedException('Invalid authorization header format');
     }
 
     try {
@@ -18,6 +24,7 @@ export class TokenValidationGuard implements CanActivate {
       request.user = { id: parseInt(payload.sub, 10) };
       return true;
     } catch (error) {
+      console.log(error)
       throw new UnauthorizedException('Invalid token');
     }
   }

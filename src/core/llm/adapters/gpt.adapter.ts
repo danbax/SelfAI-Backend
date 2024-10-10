@@ -1,60 +1,79 @@
-// src/core/llm/adapters/gpt.adapter.ts
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import axios from 'axios';
 import { LLMService } from '../interfaces/llm-service.interface';
 import { LLMRequestDto } from '../dto/llm-request.dto';
 import { LLMResponseDto } from '../dto/llm-response.dto';
+import { ChatOpenAI, OpenAI } from '@langchain/openai';
+import { HumanMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
+import { encoding_for_model, TiktokenModel } from 'tiktoken';
 
 @Injectable()
 export class GPTAdapter implements LLMService {
-  private readonly apiUrl = process.env.GPT_API_URL;
-  private readonly apiKey = process.env.GPT_API_KEY;
+  private readonly apiKey = process.env.OPENAI_API_KEY;
 
   async generateText(request: LLMRequestDto): Promise<LLMResponseDto> {
     const startTime = Date.now();
-    const response = await this.callGPTApi(request);
+    const { response, promptTokens } = await this.callLangChainModel(request);
     const timeTaken = Date.now() - startTime;
 
-    return this.mapToDto(response.data, request.model, timeTaken);
+    return this.mapToDto(response, request.version, timeTaken, promptTokens);
   }
 
-  private async callGPTApi(request: LLMRequestDto) {
+  private async callLangChainModel(request: LLMRequestDto): Promise<{ response: string, promptTokens: number }> {
     try {
-      return await axios.post(
-        this.apiUrl,
-        {
-          model: request.version,
-          messages: request.messages,
-          max_tokens: request.maxTokens,
-          temperature: request.temperature ?? 0.7,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        },
+      let response: string;
+      let promptTokens: number;
+
+      const modelConfig = {
+        modelName: request.version,
+        temperature: request.temperature ?? 0.7,
+        maxTokens: request.maxTokens,
+        openAIApiKey: this.apiKey,
+      }
+
+      const chatModel = new ChatOpenAI(modelConfig);
+
+      const messages: BaseMessage[] = request.messages.map(msg => 
+        msg.role === 'system' ? new SystemMessage(msg.content) : new HumanMessage(msg.content)
       );
+
+      promptTokens = this.countTokens(request.version, messages.map(m => m.content).join('\n'));
+      const chatResponse = await chatModel.invoke(messages);
+      response = Array.isArray(chatResponse.content) ? chatResponse.content.join(' ') : chatResponse.content;
+
+      return { response, promptTokens };
     } catch (error) {
       throw new HttpException(
-        error.response?.data?.error?.message || 'An error occurred while calling GPT API',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        error.message || 'An error occurred while calling LangChain model',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  private mapToDto(responseData: any, model: string, timeTaken: number): LLMResponseDto {
+  private countTokens(model: string, text: string): number {
+    const enc = encoding_for_model(model as TiktokenModel);
+    return enc.encode(text).length;
+  }
+
+  private mapToDto(responseText: string, model: string, timeTaken: number, promptTokens: number): LLMResponseDto {
+    const completionTokens = this.countTokens(model, responseText);
+    const totalTokens = promptTokens + completionTokens;
+    
     return {
-      text: responseData.choices[0].message.content,
-      tokenUsage: responseData.usage?.total_tokens || 0,
-      price: this.calculatePrice(responseData.usage?.total_tokens || 0),
+      text: responseText,
+      tokenUsage: totalTokens,
+      price: this.calculatePrice(model, promptTokens, completionTokens),
       model: model,
       timeTaken: timeTaken,
     };
   }
 
-  private calculatePrice(tokens: number): number {
-    const pricePerToken = 0.00002;
-    return tokens * pricePerToken;
+  private calculatePrice(model: string, promptTokens: number, completionTokens: number): number {
+    const prices = {
+      'gpt-3.5-turbo': { prompt: 0.0015, completion: 0.002 },
+      'gpt-4o': { prompt: 0.03, completion: 0.06 },
+    };
+
+    const modelPrice = prices[model] || prices['gpt-4o'];
+    return (promptTokens * modelPrice.prompt + completionTokens * modelPrice.completion) / 1000;
   }
 }

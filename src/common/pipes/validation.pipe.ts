@@ -23,6 +23,7 @@ export class ValidationPipe implements PipeTransform<any> {
 
     if (errors.length > 0) {
       // Extract and format validation errors
+      console.log('Validation errors:', errors);
       const formattedErrors = this.formatErrors(errors);
       throw new BadRequestException({
         message: 'Validation failed',

@@ -5,7 +5,7 @@ import { MessageService } from './services/message.service';
 import { SessionService } from './services/session.service';
 import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
-import { Session } from './entities/session.entity';
+import { Session } from '../sessions/entities/session.entity';
 import { ChatRepository } from './repositories/chat.repository';
 import { MessageRepository } from './repositories/message.repository';
 import { SessionRepository } from './repositories/session.repository';
@@ -17,13 +17,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TokenValidationGuard } from '../../common/guards/token-validation.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LLMFacade } from '../llm/facades/llm.facade';
+import { LLMFactoryService } from '../llm/factories/llm-service.factory';
+import { LLMContext } from '../llm/strategies/llm-context.strategy';
+import { GPTAdapter } from '../llm/adapters/gpt.adapter';
+import { ClaudeAdapter } from '../llm/adapters/claude.adapter';
 
 @Module({
   controllers: [ChatController, MessageController],
   imports: [
-    ChatRepository,
-    MessageRepository,
-    SessionRepository,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -37,12 +39,26 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     AuthModule,
     TypeOrmModule.forFeature([Chat, Message, Session]),
   ],
-  providers: [TokenValidationGuard, ChatService, MessageService, SessionService, ChatRepository, MessageRepository, SessionRepository],
+  providers: [
+    GPTAdapter,
+    ClaudeAdapter,
+    LLMContext,
+    LLMFacade,
+    LLMFactoryService,
+    TokenValidationGuard,
+    ChatService,
+    MessageService,
+    SessionService,
+    ChatRepository,
+    MessageRepository,
+    SessionRepository
+  ],
   exports: [
-      ChatService,
-      MessageService,
-      SessionService,
-      TokenValidationGuard
-    ],
+    ChatService,
+    MessageService,
+    SessionService,
+    LLMFacade,
+    TokenValidationGuard
+  ],
 })
 export class ChatModule {}

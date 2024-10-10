@@ -1,3 +1,5 @@
+// src/core/sessions/repositories/session-translation.repository.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,24 +12,20 @@ export class SessionTranslationRepository {
     private readonly sessionTranslationRepository: Repository<SessionTranslation>,
   ) {}
 
-  async findBySessionIdAndLanguage(sessionId: number, languageCode: string = 'english'): Promise<SessionTranslation[]> {
-    return this.sessionTranslationRepository
-      .createQueryBuilder('sessionTranslation')
-      .where('sessionTranslation.sessionId = :sessionId', { sessionId })
-      .andWhere('sessionTranslation.languageCode = :languageCode', {
-        languageCode
-      })
-      .getMany();
-  }
-
   async findByCategoryAndLanguage(categoryId: number, languageCode: string = 'english'): Promise<SessionTranslation[]> {
     return this.sessionTranslationRepository
       .createQueryBuilder('sessionTranslation')
-      .leftJoin('sessionTranslation.session', 'session')
+      .innerJoin('sessionTranslation.session', 'session')
+      .select([
+        'sessionTranslation.id as id',
+        'sessionTranslation.title as title',
+        'sessionTranslation.text as text',
+        'sessionTranslation.languageCode as language',
+        'session.id AS sessionId',
+      ])
       .where('session.categoryId = :categoryId', { categoryId })
-      .andWhere('sessionTranslation.languageCode = :languageCode', {
-        languageCode
-      })
-      .getMany();
+      .andWhere('sessionTranslation.languageCode = :languageCode', { languageCode })
+      .orderBy('session.id', 'ASC')
+      .getRawMany();
   }
 }

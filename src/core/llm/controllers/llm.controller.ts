@@ -18,7 +18,6 @@ export class LLMController {
 
   @Post('async-generate')
   async generateTextAsync(@Body() request: LLMRequestDto): Promise<LLMResponseDto> {
-    // Handle async generation, potentially using a command/event-driven mechanism.
-    return await this.llmFacade.generateText(request);  // This can be adapted for async processing
+    return await this.llmFacade.generateText(request);
   }
 }
