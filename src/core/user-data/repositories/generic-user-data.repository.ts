@@ -3,23 +3,23 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
-import { UserData, UserDataSchema } from '../entities/user-data.entity';
+import { UserDataDocument, UserDataSchema } from '../entities/user-data.entity';
 
 @Injectable()
 export class GenericUserDataRepository {
-  private models: { [key: string]: Model<UserData> } = {};
+  private models: { [key: string]: Model<UserDataDocument> } = {};
 
   constructor(@InjectConnection() private connection: Connection) {}
 
-  private getModel(collectionName: string): Model<UserData> {
+  private getModel(collectionName: string): Model<UserDataDocument> {
     if (!this.models[collectionName]) {
       const modelName = `v3_user_data_${collectionName}`;
-      this.models[collectionName] = this.connection.model<UserData>(modelName, UserDataSchema);
+      this.models[collectionName] = this.connection.model<UserDataDocument>(modelName, UserDataSchema);
     }
     return this.models[collectionName];
   }
 
-  async findOrCreateUserData(userId: string, collectionName: string): Promise<UserData> {
+  async findOrCreateUserData(userId: string, collectionName: string): Promise<UserDataDocument> {
     const model = this.getModel(collectionName);
     let userData = await model.findOne({ userId });
     if (!userData) {
@@ -29,33 +29,10 @@ export class GenericUserDataRepository {
     return userData;
   }
 
-  async getUserData(userId: string, collectionName: string): Promise<any[]> {
-    const userData = await this.findOrCreateUserData(userId, collectionName);
-    return userData.data;
-  }
-
-  async addUserData(userId: string, collectionName: string, newData: any): Promise<UserData> {
+  async updateUserData(userId: string, collectionName: string, newData: any): Promise<UserDataDocument> {
     const model = this.getModel(collectionName);
     const userData = await this.findOrCreateUserData(userId, collectionName);
-    userData.data.push(newData);
-    return userData.save();
-  }
-
-  async updateUserData(userId: string, collectionName: string, dataId: string, updatedData: any): Promise<UserData> {
-    const model = this.getModel(collectionName);
-    const userData = await this.findOrCreateUserData(userId, collectionName);
-    const index = userData.data.findIndex(item => item._id.toString() === dataId);
-    if (index !== -1) {
-      userData.data[index] = { ...userData.data[index], ...updatedData };
-      return userData.save();
-    }
-    throw new Error('Data item not found');
-  }
-
-  async deleteUserData(userId: string, collectionName: string, dataId: string): Promise<UserData> {
-    const model = this.getModel(collectionName);
-    const userData = await this.findOrCreateUserData(userId, collectionName);
-    userData.data = userData.data.filter(item => item._id.toString() !== dataId);
+    userData.data = newData;
     return userData.save();
   }
 }

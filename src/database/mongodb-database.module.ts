@@ -1,16 +1,20 @@
+// src/database/database.module.ts
+
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import mongodbConfig from '../config/mongodb.config';
+import { UserDataModule } from '../core/user-data/user-data.module';
 
 @Module({
   imports: [
-    ConfigModule.forFeature(mongodbConfig),
-    TypeOrmModule.forRootAsync({
+    MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => configService.get('mongodb'),
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
       inject: [ConfigService],
     }),
+    UserDataModule,
   ],
 })
 export class MongodbDatabaseModule {}

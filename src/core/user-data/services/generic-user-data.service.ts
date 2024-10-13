@@ -8,18 +8,11 @@ export class GenericUserDataService {
   constructor(private readonly repository: GenericUserDataRepository) {}
 
   async getUserData(userId: string, collectionName: string): Promise<any[]> {
-    return this.repository.getUserData(userId, collectionName);
+    const userData = await this.repository.findOrCreateUserData(userId, collectionName);
+    return userData.data || [];
   }
 
-  async addUserData(userId: string, collectionName: string, newData: any): Promise<any> {
-    return this.repository.addUserData(userId, collectionName, newData);
-  }
-
-  async updateUserData(userId: string, collectionName: string, dataId: string, updatedData: any): Promise<any> {
-    return this.repository.updateUserData(userId, collectionName, dataId, updatedData);
-  }
-
-  async deleteUserData(userId: string, collectionName: string, dataId: string): Promise<any> {
-    return this.repository.deleteUserData(userId, collectionName, dataId);
+  async updateUserData(userId: string, collectionName: string, newData: any): Promise<any> {
+    return this.repository.updateUserData(userId, collectionName, newData);
   }
 }

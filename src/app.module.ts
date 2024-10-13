@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './core/notifications/notifications.module';
+import { UserDataModule } from './core/user-data/user-data.module';
 import { I18nModule, I18nJsonLoader, QueryResolver, AcceptLanguageResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
@@ -37,7 +38,8 @@ import * as path from 'path';
     CommonModule,
     DatabaseModule,
     EventsModule,
-    NotificationsModule
+    NotificationsModule,
+    UserDataModule
   ],
 })
 export class AppModule {}

@@ -1,13 +1,16 @@
 // src/core/user-data/entities/user-data.entity.ts
 
-import { Document, Schema } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 
-export interface UserData extends Document {
+@Schema({ strict: false })
+export class UserData {
+  @Prop({ required: true })
   userId: string;
-  data: any;
+
+  @Prop({ type: MongooseSchema.Types.Mixed, default: [] })
+  data: any[];
 }
 
-export const UserDataSchema = new Schema({
-  userId: { type: String, required: true },
-  data: { type: Array, default: [] }
-}, { strict: false });
+export type UserDataDocument = UserData & Document;
+export const UserDataSchema = SchemaFactory.createForClass(UserData);
