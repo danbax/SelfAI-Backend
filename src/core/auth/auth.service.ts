@@ -1,66 +1,80 @@
+// src/core/auth/auth.service.ts
+
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/services/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../users/entities/user.mysql-entity';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { UserCreatedEvent } from '../../events/consumers/auth/user-created.event';
 
 @Injectable()
 export class AuthService {
-  private readonly saltRounds = 10;
-
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-    private eventEmitter: EventEmitter2,
   ) {}
 
-  async validateUser(loginDto: LoginDto): Promise<User | null> {
+  async validateUser(loginDto: LoginDto): Promise<any> {
     const user = await this.usersService.findByEmail(loginDto.email);
-    if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
-      return null;
+    if (user && await bcrypt.compare(loginDto.password, user.password)) {
+      const { password, ...result } = user;
+      return result;
     }
-    return user;
+    return null;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string, user: any}>
-  {
+  async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
-    const userWithoutPassword = { ...user, password: undefined };
-
     const payload = { email: user.email, sub: user.id };
-    return { 
+    return {
       access_token: this.jwtService.sign(payload),
-       user: userWithoutPassword
+      user,
     };
   }
 
-  async hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(this.saltRounds);
-    return bcrypt.hash(password, salt);
-  }
-
-  async register(registerDto: RegisterDto): Promise<{ access_token: string }> {
+  async register(registerDto: RegisterDto) {
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const user = await this.usersService.create({
+      ...registerDto,
+      password: hashedPassword,
+    });
+    const payload = { email: user.email, sub: user.id };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user,
+    };
+  }
 
-    const hashedPassword = await this.hashPassword(registerDto.password);
-    registerDto.password = hashedPassword;
+  async googleLogin(googleUser: any) {
+    console.log(googleUser, 'googleUser');
+    let user = await this.usersService.findByEmail(googleUser.email);
+    let userCreated;
 
-    const user = await this.usersService.create(registerDto);
-
-    this.eventEmitter.emit('user.created', new UserCreatedEvent(user.id));
+    if (!user) {
+      userCreated = await this.usersService.create({
+        email: googleUser.email,
+        firstName: googleUser.firstName,
+        lastName: googleUser.lastName,
+        password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
+      });
+    }
 
     const payload = { email: user.email, sub: user.id };
-    return { access_token: this.jwtService.sign(payload) };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id || userCreated.id,
+        email: user.email || userCreated.email,
+        firstName: user.firstName || userCreated.firstName,
+        lastName: user.lastName || userCreated.lastName
+      },
+    };
   }
 }

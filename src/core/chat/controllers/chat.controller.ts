@@ -12,7 +12,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get(':id')
-  @UseGuards(TokenValidationGuard, ChatOwnershipGuard)
+  @UseGuards(TokenValidationGuard)
   async getChat(@Param('id') chatId: number) {
     return this.chatService.getChatWithMessages(chatId);
   }
