@@ -15,6 +15,10 @@ export class Session {
   @Column({ name: 'system_prompt' })
   systemPrompt: string;
 
+
+  @Column({ name: 'data_source' })
+  dataSource: string;
+
   @ManyToOne(() => CategoryTranslation, (categoryTranslation) => categoryTranslation.sessions)
   @JoinColumn({ name: 'category_id' })
   category: CategoryTranslation;

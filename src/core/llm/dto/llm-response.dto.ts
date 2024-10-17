@@ -5,15 +5,12 @@ export class LLMResponseDto {
   price: number;               // Price for generating the text
   model: string;               // Model used to generate the text
   timeTaken: number;           // Time taken to generate the response (in milliseconds)
+  actions?: any[];            // List of tool calls made during the generation
 }
 
 export class LLMResponseClientDto {
-  text: string;   
-  payload?: LLMResponseClientDtoPayload
-}
-  
-export class LLMResponseClientDtoPayload {
-  actions: LLMResponseClientDtoPayloadAction[];
+  text?: string;   
+  actions?: LLMResponseClientDtoPayloadAction[];
 }
 
 export class LLMResponseClientDtoPayloadAction {

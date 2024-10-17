@@ -6,7 +6,7 @@ import { Document, Schema as MongooseSchema } from 'mongoose';
 @Schema({ strict: false })
 export class UserData {
   @Prop({ required: true })
-  userId: string;
+  userId: number;
 
   @Prop({ type: MongooseSchema.Types.Mixed, default: [] })
   data: any[];

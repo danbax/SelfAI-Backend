@@ -9,7 +9,7 @@ export interface IMessage {
 }
 
 export interface IMessageService {
-  addMessage(createMessageDto: CreateMessageDto): Promise<IMessage>;
+  addMessage(createMessageDto: CreateMessageDto, userId: number): Promise<IMessage>;
   updateMessage(id: number, updateMessageDto: UpdateMessageDto): Promise<IMessage | null>;
   deleteMessage(id: number): Promise<void>;
 }

@@ -7,10 +7,11 @@ import { CacheService } from 'src/common/services/cache.service';
 import { LLMMessageDto, LLMRequestDto } from '../../llm/dto/llm-request.dto';
 import { ChatService } from './chat.service';
 import { LLMFacade } from 'src/core/llm/facades/llm.facade';
-import { LLMResponseClientDto, LLMResponseDto } from 'src/core/llm/dto/llm-response.dto';
+import { LLMResponseClientDto, LLMResponseClientDtoPayloadAction, LLMResponseDto } from 'src/core/llm/dto/llm-response.dto';
 import { UpdateMessageDto } from '../dto/update-message.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
 import { Chat } from '../entities/chat.entity';
+import { camelCaseToDotSeparated, isValidJson } from '../../../common/utils/utility';
 
 @Injectable()
 export class MessageService {
@@ -25,14 +26,14 @@ export class MessageService {
 
   @OnEvent('chat.created')
   async handleChatCreated(chat: Chat): Promise<void> {
-    await this.addAssistantMessageToChat(chat.id);
+    await this.addAssistantMessageToChat(chat.id, chat.userId);
   }
 
-  async addMessage(createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+  async addMessage(createMessageDto: CreateMessageDto, userId: number): Promise<LLMResponseClientDto> {
     await this.addUserMessageToChat(createMessageDto);
     const chatMessages = await this.getChatMessagesWithNewMessage(createMessageDto);
     const llmResponse = await this.generateLLMResponse(chatMessages);
-    return this.processAndAddAssistantResponse(llmResponse, createMessageDto.chat_id);
+    return this.processAndAddAssistantResponse(llmResponse, createMessageDto.chat_id, userId);
   }
 
   async updateMessage(id: number, updateMessageDto: UpdateMessageDto): Promise<Message> {
@@ -46,10 +47,10 @@ export class MessageService {
     if (result.affected === 0) return;
   }
 
-  private async addAssistantMessageToChat(chatId: number): Promise<LLMResponseClientDto> {
+  private async addAssistantMessageToChat(chatId: number, userId: number): Promise<LLMResponseClientDto> {
     const chatMessages = await this.chatService.getChatMessages(chatId);
     const llmResponse = await this.generateLLMResponse(chatMessages);
-    return this.processAndAddAssistantResponse(llmResponse, chatId);
+    return this.processAndAddAssistantResponse(llmResponse, chatId, userId);
   }
 
   private async addUserMessageToChat(createMessageDto: CreateMessageDto): Promise<void> {
@@ -73,28 +74,29 @@ export class MessageService {
   private async generateLLMResponse(chatMessages: LLMMessageDto[]): Promise<LLMResponseDto> {
     const llmRequestDto: LLMRequestDto = {
       model: 'gpt',
-      version: 'gpt-4o',
+      version: 'gpt-4o-mini',
       messages: chatMessages,
       maxTokens: null,
     };
     return this.llmFacade.generateText(llmRequestDto);
   }
 
-  private async processAndAddAssistantResponse(response: LLMResponseDto, chatId: number): Promise<LLMResponseClientDto> {
+  private async processAndAddAssistantResponse(response: LLMResponseDto, chatId: number, userId: number): Promise<LLMResponseClientDto> {
     const createAssistantMessageDto: CreateMessageDto = {
       chat_id: chatId,
       role: 'assistant',
       message: null,
     };
 
-    return this.processResponse(response.text, createAssistantMessageDto);
+    return this.processResponse(response, userId, createAssistantMessageDto);
   }
 
-  private async processResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
-    if (!this.isValidJson(text)) {
-      return this.handlePlainTextResponse(text, createMessageDto);
+  private async processResponse(response: LLMResponseDto, userId: number, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+    if (response.text) {
+      return this.handlePlainTextResponse(response.text, createMessageDto);
     }
-    return this.handleJsonResponse(text, createMessageDto);
+    
+    return this.handleJsonResponse(response.actions, userId, createMessageDto);
   }
 
   private async handlePlainTextResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
@@ -103,31 +105,19 @@ export class MessageService {
     return { text };
   }
 
-  private async handleJsonResponse(text: string, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
-    const data = JSON.parse(text);
-    const { text: responseText, payload } = data;
+  private async handleJsonResponse(actions: any[], userId: number, createMessageDto: CreateMessageDto): Promise<LLMResponseClientDto> {
+    for(let action of actions) {
+      const dotSeperatedName = camelCaseToDotSeparated(action.name);
 
-    createMessageDto.message = responseText;
-    await this.chatService.addMessageToChat(createMessageDto);
-
-    await this.emitActions(payload.actions);
-
-    return { text: responseText, payload };
-  }
-
-  private async emitActions(actions: any[]): Promise<void> {
-    for (const action of actions) {
-      await this.eventEmitter.emitAsync(action.name, ...action.parameters);
+      const payload= {
+        ...action,
+        userId,
+      }
+  
+      this.eventEmitter.emitAsync(dotSeperatedName, payload);
     }
-  }
-
-  private isValidJson(text: string): boolean {
-    try {
-      JSON.parse(text);
-      return true;
-    } catch {
-      return false;
-    }
+    
+    return { actions };
   }
 
   private async findMessageById(id: number): Promise<Message | null> {

@@ -19,7 +19,7 @@ export class GenericUserDataRepository {
     return this.models[collectionName];
   }
 
-  async findOrCreateUserData(userId: string, collectionName: string): Promise<UserDataDocument> {
+  async findOrCreateUserData(userId: number, collectionName: string): Promise<UserDataDocument> {
     const model = this.getModel(collectionName);
     let userData = await model.findOne({ userId });
     if (!userData) {
@@ -29,8 +29,7 @@ export class GenericUserDataRepository {
     return userData;
   }
 
-  async updateUserData(userId: string, collectionName: string, newData: any): Promise<UserDataDocument> {
-    const model = this.getModel(collectionName);
+  async updateUserData(userId: number, collectionName: string, newData: any): Promise<UserDataDocument> {
     const userData = await this.findOrCreateUserData(userId, collectionName);
     userData.data = newData;
     return userData.save();

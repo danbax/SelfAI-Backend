@@ -13,6 +13,7 @@ import { PaginationDTO } from '../../../common/dto/pagination.dto';
 import { ChatWithMessagesDto } from '../dto/transformers/ChatWithMessagesDTO';
 import { LLMMessageDto } from 'src/core/llm/dto/llm-request.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { sessionPrompt } from '../../llm/prompts/session-prompt';
 
 @Injectable()
 export class ChatService {
@@ -224,7 +225,7 @@ export class ChatService {
       select: ['systemPrompt'],
     });    
 
-    const systemPrompt = session?.systemPrompt;
+    const systemPrompt = `${sessionPrompt} \n Current Session: ${session?.systemPrompt}`;
   
     await this.addMessageToChat({
       chat_id: chatId,

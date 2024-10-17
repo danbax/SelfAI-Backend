@@ -1,17 +1,23 @@
 // message.controller.ts
-import { Controller, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Post, Put, Delete, Param, Body, Req, UseGuards } from '@nestjs/common';
 import { MessageService } from '../services/message.service';
-import { Message } from '../entities/message.entity';
 import { UpdateMessageDto } from '../dto/update-message.dto';
 import { CreateMessageDto } from '../dto/create-message.dto';
+import { TokenValidationGuard } from 'src/common/guards/token-validation.guard';
+import { UserRequest } from '../../../common/interfaces/user-request.interface';
 
 @Controller('messages')
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
   @Post('send')
-  async addMessage(@Body() createMessageDto: CreateMessageDto) {
-    return this.messageService.addMessage(createMessageDto);
+  @UseGuards(TokenValidationGuard)
+  async addMessage(
+    @Req() req: UserRequest,
+    @Body() createMessageDto: CreateMessageDto
+  ) {
+    const userId = req.user.id;
+    return this.messageService.addMessage(createMessageDto, userId);
   }
 
   @Put(':id')

@@ -7,12 +7,13 @@ import { GenericUserDataRepository } from '../repositories/generic-user-data.rep
 export class GenericUserDataService {
   constructor(private readonly repository: GenericUserDataRepository) {}
 
-  async getUserData(userId: string, collectionName: string): Promise<any[]> {
+  async getUserData(userId: number, collectionName: string): Promise<any[]> {
     const userData = await this.repository.findOrCreateUserData(userId, collectionName);
+    console.log('userData', userData);
     return userData.data || [];
   }
 
-  async updateUserData(userId: string, collectionName: string, newData: any): Promise<any> {
+  async updateUserData(userId: number, collectionName: string, newData: any): Promise<any> {
     return this.repository.updateUserData(userId, collectionName, newData);
   }
 }

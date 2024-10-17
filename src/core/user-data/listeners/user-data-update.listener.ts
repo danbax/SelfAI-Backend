@@ -9,7 +9,7 @@ export class UserDataUpdateListener {
   constructor(private userDataService: GenericUserDataService) {}
 
   @OnEvent('update.user.data')
-  async handleUserDataUpdate(payload: { userId: string; collectionName: string; newData: any }) {
+  async handleUserDataUpdate(payload: { userId: number; collectionName: string; newData: any }) {
     const { userId, collectionName, newData } = payload;
     await this.userDataService.updateUserData(userId, collectionName, newData);
   }

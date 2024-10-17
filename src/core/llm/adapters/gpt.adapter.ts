@@ -2,9 +2,10 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { LLMService } from '../interfaces/llm-service.interface';
 import { LLMRequestDto } from '../dto/llm-request.dto';
 import { LLMResponseDto } from '../dto/llm-response.dto';
-import { ChatOpenAI, OpenAI } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
 import { encoding_for_model, TiktokenModel } from 'tiktoken';
+import { FunctionCallResponse } from '../interfaces/llm-service.interface';
 
 @Injectable()
 export class GPTAdapter implements LLMService {
@@ -12,35 +13,111 @@ export class GPTAdapter implements LLMService {
 
   async generateText(request: LLMRequestDto): Promise<LLMResponseDto> {
     const startTime = Date.now();
-    const { response, promptTokens } = await this.callLangChainModel(request);
+    const result: { message: string; promptTokens: number; actions: any[] } = await this.callLangChainModel(request);
     const timeTaken = Date.now() - startTime;
 
-    return this.mapToDto(response, request.version, timeTaken, promptTokens);
+    return this.mapToDto(result.message, request.version, timeTaken, result.promptTokens, result.actions);
   }
 
-  private async callLangChainModel(request: LLMRequestDto): Promise<{ response: string, promptTokens: number }> {
+  private async callLangChainModel(request: LLMRequestDto): Promise<{ message: string, promptTokens: number, actions: any[] }> {
     try {
-      let response: string;
-      let promptTokens: number;
-
       const modelConfig = {
         modelName: request.version,
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
-        openAIApiKey: this.apiKey,
+        openAIApiKey: this.apiKey
       }
 
-      const chatModel = new ChatOpenAI(modelConfig);
+      const tools = [
+        {
+          type: "function",
+          function: {
+            name: 'updateUserData',
+            description: 'Update users data',
+            parameters: {
+              type: 'object',
+              properties: {
+                collection_name: { type: 'string' },
+                data: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      title: { type: 'string' },
+                      icon: { type: 'string' },
+                      description: { type: 'string' },
+                      type: { type: 'string' },
+                      data: { type: 'string' }
+                    },
+                    required: ['title', 'icon', 'description', 'type', 'data']
+                  }
+                }
+              },
+              required: ['collection_name', 'data']
+            }
+          }
+        },
+        {
+          type: "function",
+          function: {
+            name: 'finishSession',
+            description: 'End the current session',
+            parameters: null
+          }
+        },
+        {
+          type: "function",
+          function: {
+            name: 'setDarkMode',
+            description: 'Toggle dark mode',
+            parameters: {
+              type: 'object',
+              properties: {
+                darkMode: { type: 'boolean' }
+              },
+              required: ['darkMode']
+            }
+          }
+        },
+        {
+          type: "function",
+          function: {
+            name: 'goToRouter',
+            description: 'Navigate to a different route',
+            parameters: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' }
+              },
+              required: ['name']
+            }
+          }
+        }
+      ];
+
+      const chatModelInit = new ChatOpenAI(modelConfig);
+      const chatModel = chatModelInit.bindTools(tools);
 
       const messages: BaseMessage[] = request.messages.map(msg => 
         msg.role === 'system' ? new SystemMessage(msg.content) : new HumanMessage(msg.content)
       );
 
-      promptTokens = this.countTokens(request.version, messages.map(m => m.content).join('\n'));
+      const promptTokens = this.countTokens(request.version, messages.map(m => m.content).join('\n'));
       const chatResponse = await chatModel.invoke(messages);
-      response = Array.isArray(chatResponse.content) ? chatResponse.content.join(' ') : chatResponse.content;
 
-      return { response, promptTokens };
+      let actions = [];
+      if (chatResponse.additional_kwargs && chatResponse.additional_kwargs.tool_calls) {
+        actions = chatResponse.additional_kwargs.tool_calls.map(toolCall => ({
+          name: toolCall.function.name,
+          parameters: JSON.parse(toolCall.function.arguments)
+        }));
+      } 
+
+        return {
+          message: Array.isArray(chatResponse.content) ? chatResponse.content.join(' ') : chatResponse.content,
+          actions,
+          promptTokens: promptTokens
+        };
     } catch (error) {
       throw new HttpException(
         error.message || 'An error occurred while calling LangChain model',
@@ -54,7 +131,7 @@ export class GPTAdapter implements LLMService {
     return enc.encode(text).length;
   }
 
-  private mapToDto(responseText: string, model: string, timeTaken: number, promptTokens: number): LLMResponseDto {
+  private mapToDto(responseText: string, model: string, timeTaken: number, promptTokens: number, actions: any[]): LLMResponseDto {
     const completionTokens = this.countTokens(model, responseText);
     const totalTokens = promptTokens + completionTokens;
     
@@ -64,6 +141,7 @@ export class GPTAdapter implements LLMService {
       price: this.calculatePrice(model, promptTokens, completionTokens),
       model: model,
       timeTaken: timeTaken,
+      actions
     };
   }
 
